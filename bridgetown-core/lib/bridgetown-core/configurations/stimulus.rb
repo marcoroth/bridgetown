@@ -9,28 +9,27 @@ run("yarn add @hotwired/stimulus @hotwired/stimulus-webpack-helpers")
 say 'Adding Stimulus to "frontend/javascript/index.js"...', :magenta
 
 javascript_import do
+  <<~JS
+    import "./controllers"
+  JS
+end
+
+javascript_dir = File.join("frontend", "javascript")
+controller_dir = File.join(javascript_dir, "controllers")
+
+say "Creating a `./#{controller_dir}` directory...", :magenta
+FileUtils.mkdir_p(controller_dir)
+
+append_to_file(File.join(controller_dir, "index.js")) do
   if Bridgetown::Utils.frontend_bundler_type == :esbuild
     <<~JS
       import { Application } from "@hotwired/stimulus"
       import { identifierForContextKey } from "@hotwired/stimulus-webpack-helpers"
-    JS
-  else
-    <<~JS
-      import { Application } from "@hotwired/stimulus"
-      import { definitionsFromContext } from "@hotwired/stimulus-webpack-helpers"
-    JS
-  end
-end
-
-javascript_dir = File.join("frontend", "javascript")
-
-append_to_file(File.join(javascript_dir, "index.js")) do
-  if Bridgetown::Utils.frontend_bundler_type == :esbuild
-    <<~JS
 
       window.Stimulus = Application.start()
 
-      import controllers from "./controllers/**/*.{js,js.rb}"
+      import controllers from "./**/*_controller.{js,js.rb}"
+
       Object.entries(controllers).forEach(([filename, controller]) => {
         const identifier = identifierForContextKey(filename)
 
@@ -41,18 +40,15 @@ append_to_file(File.join(javascript_dir, "index.js")) do
     JS
   else
     <<~JS
+      import { Application } from "@hotwired/stimulus"
+      import { definitionsFromContext } from "@hotwired/stimulus-webpack-helpers"
 
       window.Stimulus = Application.start()
-      const context = require.context("./controllers", true, /\.js$/)
+      const context = require.context("./", true, /\.js$/)
       Stimulus.load(definitionsFromContext(context))
     JS
   end
 end
-
-controller_dir = File.join(javascript_dir, "controllers")
-
-say "Creating a `./#{controller_dir}` directory...", :magenta
-FileUtils.mkdir_p(controller_dir)
 
 say "Creating an example Stimulus Controller for you!...", :magenta
 create_file(File.join(controller_dir, "example_controller.js")) do
