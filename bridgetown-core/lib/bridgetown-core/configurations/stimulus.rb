@@ -4,10 +4,7 @@ require "fileutils"
 
 say "Installing Stimulus...", :green
 
-run("yarn add @hotwired/stimulus")
-if Bridgetown::Utils.frontend_bundler_type == :webpack
-  run("yarn add @hotwired/stimulus-webpack-helpers")
-end
+run("yarn add @hotwired/stimulus @hotwired/stimulus-webpack-helpers")
 
 say 'Adding Stimulus to "frontend/javascript/index.js"...', :magenta
 
@@ -15,6 +12,7 @@ javascript_import do
   if Bridgetown::Utils.frontend_bundler_type == :esbuild
     <<~JS
       import { Application } from "@hotwired/stimulus"
+      import { identifierForContextKey } from "@hotwired/stimulus-webpack-helpers"
     JS
   else
     <<~JS
@@ -34,12 +32,9 @@ append_to_file(File.join(javascript_dir, "index.js")) do
 
       import controllers from "./controllers/**/*.{js,js.rb}"
       Object.entries(controllers).forEach(([filename, controller]) => {
-        if (filename.includes("_controller.") || filename.includes("-controller.")) {
-          const identifier = filename.replace("./controllers/", "")
-            .replace(/[_\-]controller\..*$/, "")
-            .replace("_", "-")
-            .replace("/", "--")
+        const identifier = identifierForContextKey(filename)
 
+        if (identifier) {
           Stimulus.register(identifier, controller.default)
         }
       })
